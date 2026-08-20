@@ -1,0 +1,35 @@
+name: download_multimedia
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  #Red y Scraping
+  http: ^1.2.0
+  html: ^0.15.4
+
+  #manejo de archivos
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+
+  #Carga de medios
+  cached_network_image: ^3.3.1
+
+  #Gestión de estado
+  flutter_riverpod: ^2.5.1
+  
+  
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
