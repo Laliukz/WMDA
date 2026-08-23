@@ -63,11 +63,15 @@ class DownloadService {
   }
 
   Future<Directory> _getStorageDirectory() async {
-    try {
-      final dir = await getDownloadsDirectory(); //tratamos de obtener la carpeta descargas
-      if (dir != null) return dir;
-    } catch (_) {}
-    return await getApplicationDocumentsDirectory(); //como fallback usamos la carpeta docs
+    if (Platform.isAndroid) {
+      //ruta descargas
+      final publicDownloadDir = Directory('/storage/emulated/0/Download/MWDA');
+      if (!await publicDownloadDir.exists()) {
+        await publicDownloadDir.create(recursive: true);
+      }
+      return publicDownloadDir;
+    }
+    return await getApplicationDocumentsDirectory();
   }
 
   String _sanitizeFileName(String name) {
