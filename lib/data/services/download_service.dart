@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/errors/failures.dart';
 import '../../domain/entities/media_item.dart';
+import '../../core/utils/permission_helper.dart';
 
 class DownloadService {
   final http.Client _client;
@@ -16,6 +17,11 @@ class DownloadService {
     MediaItem item, {
     void Function(double progress)? onProgress,
   }) async {
+    //verificar permisos
+    final hasPermission = await PermissionHelper.requestStoragePermission();
+    if (!hasPermission) {
+      throw const StorageFailure('Permiso de almacenamiento denegado.');
+    }
     try {
       final request = http.Request('GET', Uri.parse(item.url));
       final response = await _client.send(request);
