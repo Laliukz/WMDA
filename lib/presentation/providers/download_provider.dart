@@ -5,27 +5,28 @@ import 'history_provider.dart';
 import 'repository_providers.dart';
 
 class DownloadState {
-  //progreso del 0 a 100
   final Map<String, double> progressMap;
-  //id del elemento
   final Set<String> downloadingIds;
-
+  final Map<String, MediaItem> downloadingItems;
   final Map<String, String> errorMap;
 
   const DownloadState({
     this.progressMap = const {},
     this.downloadingIds = const {},
+    this.downloadingItems = const {},
     this.errorMap = const {},
   });
 
   DownloadState copyWith({
     Map<String, double>? progressMap,
     Set<String>? downloadingIds,
+    Map<String, MediaItem>? downloadingItems,
     Map<String, String>? errorMap,
   }) {
     return DownloadState(
       progressMap: progressMap ?? this.progressMap,
       downloadingIds: downloadingIds ?? this.downloadingIds,
+      downloadingItems: downloadingItems ?? this.downloadingItems,
       errorMap: errorMap ?? this.errorMap,
     );
   }
@@ -37,29 +38,37 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
   DownloadNotifier(this._ref) : super(const DownloadState());
 
   Future<void> download(MediaItem item) async {
-    //marca como descargado
+    // Registra el item como activo y progreso en 0
     state = state.copyWith(
       downloadingIds: {...state.downloadingIds, item.id},
+      downloadingItems: {...state.downloadingItems, item.id: item},
       progressMap: {...state.progressMap, item.id: 0.0},
     );
+
     try {
       final downloadUseCase = _ref.read(downloadMediaUseCaseProvider);
 
       await downloadUseCase(
         item,
         onProgress: (progress) {
-          //actualiza el progreso del archivo
           state = state.copyWith(
             progressMap: {...state.progressMap, item.id: progress},
           );
         },
       );
 
-      //si descarga correctamente removemos de descargando
+      // Al terminar con éxito, se retira de descargas activas
       final updatedDownloading = Set<String>.from(state.downloadingIds)
         ..remove(item.id);
-      state = state.copyWith(downloadingIds: updatedDownloading);
-      //refrescamos historial automaticamente
+      final updatedItems = Map<String, MediaItem>.from(state.downloadingItems)
+        ..remove(item.id);
+
+      state = state.copyWith(
+        downloadingIds: updatedDownloading,
+        downloadingItems: updatedItems,
+      );
+
+      // Refresca el historial automáticamente
       _ref.read(historyProvider.notifier).loadHistory();
     } catch (e) {
       final updatedDownloading = Set<String>.from(state.downloadingIds)
@@ -73,7 +82,5 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
 }
 
 final downloadProvider = StateNotifierProvider<DownloadNotifier, DownloadState>(
-  (ref) {
-    return DownloadNotifier(ref);
-  },
+  (ref) => DownloadNotifier(ref),
 );

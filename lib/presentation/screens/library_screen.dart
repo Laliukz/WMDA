@@ -9,7 +9,7 @@ import '../../domain/entities/media_item.dart';
 import '../providers/history_provider.dart';
 import '../widgets/filter_chips_bar.dart';
 import '../widgets/library_card.dart';
-import '../widgets/library_header.dart';
+import '../widgets/screen_header.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -83,11 +83,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header con Filtros
-              LibraryHeader(
-                selectedFilter: _selectedFilter,
-                onFilterChanged: (filter) {
-                  setState(() => _selectedFilter = filter);
-                },
+              ScreenHeader(
+                title: 'Library',
+                spacing: 20,
+                trailing: Row(
+                  children: [
+                    _FilterChip(
+                      label: 'All',
+                      isSelected: _selectedFilter == MediaFilter.all,
+                      onTap: () =>
+                          setState(() => _selectedFilter = MediaFilter.all),
+                    ),
+                    const SizedBox(width: 6),
+                    _FilterChip(
+                      label: 'Images',
+                      isSelected: _selectedFilter == MediaFilter.images,
+                      onTap: () =>
+                          setState(() => _selectedFilter = MediaFilter.images),
+                    ),
+                    const SizedBox(width: 6),
+                    _FilterChip(
+                      label: 'Videos',
+                      isSelected: _selectedFilter == MediaFilter.videos,
+                      onTap: () =>
+                          setState(() => _selectedFilter = MediaFilter.videos),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -176,6 +198,40 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : const Color(0xFFE8EEF8),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: isSelected ? Colors.white : AppColors.dark,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

@@ -9,7 +9,7 @@ import '../providers/scan_provider.dart';
 import '../providers/selected_media_provider.dart';
 import '../widgets/filter_chips_bar.dart';
 import '../widgets/media_card.dart';
-import '../widgets/scan_header.dart';
+import '../widgets/screen_header.dart';
 import '../widgets/selection_bottom_bar.dart';
 import '../widgets/url_input_bar.dart';
 
@@ -76,7 +76,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // 1. Header
-                  const ScanHeader(),
+                  const ScreenHeader(
+                    title: 'Scan Website',
+                    subtitle:
+                        'Enter a URL to dicover extractable images and videos',
+                    spacing: 28,
+                  ),
                   const SizedBox(height: 24),
 
                   // 2. Barra de entrada de URL y botón Search
