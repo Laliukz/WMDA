@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -49,6 +50,19 @@ class DownloadService {
       await sink.flush();
       await sink.close();
 
+      // Copia a la galería vía MediaStore (única vía en Android 11+).
+      // ponytail: si falla, el archivo queda en el dir de la app; para URI
+      // exacta del MediaStore haría falta media_store_plus.
+      try {
+        if (await Gal.requestAccess()) {
+          if (item.type == MediaType.video) {
+            await Gal.putVideo(filePath, album: 'WMDA');
+          } else {
+            await Gal.putImage(filePath, album: 'WMDA');
+          }
+        }
+      } catch (_) {}
+
       return file.path;
     } catch (e) {
       if (e is Failure) rethrow;
@@ -57,11 +71,16 @@ class DownloadService {
   }
 
   Future<Directory> _getStorageDirectory() async {
-    try {
-      final dir = await getDownloadsDirectory(); //tratamos de obtener la carpeta descargas
-      if (dir != null) return dir;
-    } catch (_) {}
-    return await getApplicationDocumentsDirectory(); //como fallback usamos la carpeta docs
+    if (Platform.isAndroid) {
+      // Directorio externo de la app: escribible sin permisos en cualquier API
+      final externalDirs = await getExternalStorageDirectories(
+        type: StorageDirectory.downloads,
+      );
+      if (externalDirs != null && externalDirs.isNotEmpty) {
+        return externalDirs.first;
+      }
+    }
+    return await getApplicationDocumentsDirectory();
   }
 
   String _sanitizeFileName(String name) {

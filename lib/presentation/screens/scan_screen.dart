@@ -53,10 +53,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     // Filtramos según el chip activo
     final filteredItems = scanState.items.where((item) {
-      if (_selectedFilter == MediaFilter.images)
+      if (_selectedFilter == MediaFilter.images) {
         return item.type == MediaType.image;
-      if (_selectedFilter == MediaFilter.videos)
+      }
+      if (_selectedFilter == MediaFilter.videos) {
         return item.type == MediaType.video;
+      }
       return true;
     }).toList();
 

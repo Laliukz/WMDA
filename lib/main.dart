@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
-import 'presentation/screens/scan_screen.dart';
+import 'presentation/screens/main_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'WMDA',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const ScanScreen(),
+      home: const MainScreen(),
     );
   }
 }

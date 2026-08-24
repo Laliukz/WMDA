@@ -23,6 +23,7 @@ dependencies:
   #Gestión de estado
   flutter_riverpod: ^2.5.1
   google_fonts: ^8.2.1
+  gal: ^2.3.3
   
   
   
