@@ -4,13 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/media_item.dart';
+import '../providers/download_provider.dart';
 import '../providers/scan_provider.dart';
+import '../providers/selected_media_provider.dart';
 import '../widgets/filter_chips_bar.dart';
 import '../widgets/media_card.dart';
 import '../widgets/scan_header.dart';
-import '../widgets/url_input_bar.dart';
-import '../providers/download_provider.dart';
 import '../widgets/selection_bottom_bar.dart';
+import '../widgets/url_input_bar.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({super.key});
@@ -22,7 +23,6 @@ class ScanScreen extends ConsumerStatefulWidget {
 class _ScanScreenState extends ConsumerState<ScanScreen> {
   final TextEditingController _urlController = TextEditingController();
   MediaFilter _selectedFilter = MediaFilter.all;
-  final Set<String> _selectedIds = {};
 
   @override
   void dispose() {
@@ -34,7 +34,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     final url = _urlController.text.trim();
     if (url.isNotEmpty) {
       // Limpiamos selecciones previas al hacer un nuevo escaneo
-      setState(() => _selectedIds.clear());
+      ref.read(selectedMediaProvider.notifier).clearSelection();
       ref.read(scanProvider.notifier).scan(url);
     }
   }
@@ -42,6 +42,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     final scanState = ref.watch(scanProvider);
+    final selectedItems = ref.watch(selectedMediaProvider);
 
     // Conteo de elementos escaneados según tipo
     final imagesCount = scanState.items
@@ -152,19 +153,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final item = filteredItems[index];
-                    final isSelected = _selectedIds.contains(item.id);
+                    final isSelected = selectedItems.any(
+                      (e) => e.id == item.id,
+                    );
 
                     return MediaCard(
                       item: item,
                       isSelected: isSelected,
                       onSelectedChanged: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedIds.add(item.id);
-                          } else {
-                            _selectedIds.remove(item.id);
-                          }
-                        });
+                        ref
+                            .read(selectedMediaProvider.notifier)
+                            .toggleSelection(item);
                       },
                     );
                   }, childCount: filteredItems.length),
@@ -176,12 +175,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         ),
       ),
       bottomNavigationBar: SelectionBottomBar(
-        selectedCount: _selectedIds.length,
+        selectedCount: selectedItems.length,
         onDownload: () {
-          final selectedItems = scanState.items
-              .where((item) => _selectedIds.contains(item.id))
-              .toList();
-
           for (final item in selectedItems) {
             ref.read(downloadProvider.notifier).download(item);
           }
