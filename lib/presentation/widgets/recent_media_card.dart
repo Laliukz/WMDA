@@ -1,11 +1,9 @@
-import 'dart:io';
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/media_item.dart';
+import 'media_thumbnail.dart';
 
 class RecentMediaCard extends StatelessWidget {
   final MediaItem item;
@@ -24,8 +22,6 @@ class RecentMediaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isVideo = item.type == MediaType.video;
-    final hasLocalFile =
-        item.localPath != null && File(item.localPath!).existsSync();
     final title = item.title?.isNotEmpty == true
         ? item.title!
         : (item.url.split('/').last.split('?').first);
@@ -52,25 +48,7 @@ class RecentMediaCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (hasLocalFile && !isVideo)
-                      Image.file(File(item.localPath!), fit: BoxFit.cover)
-                    else
-                      CachedNetworkImage(
-                        imageUrl: item.previewUrl ?? item.url,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            Container(color: AppColors.chipBackground),
-                        errorWidget: (context, url, error) => Container(
-                          color: const Color(0xFFE2E8F0),
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              color: AppColors.neutral,
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      ),
+                    MediaThumbnail(item: item),
 
                     // Badge de Calidad (1080p) en esquina inferior derecha
                     Positioned(

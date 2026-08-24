@@ -77,9 +77,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                 delegate: SliverChildListDelegate([
                   // 1. Header
                   const ScreenHeader(
-                    title: 'Scan Website',
+                    title: 'Escanear sitio',
                     subtitle:
-                        'Enter a URL to dicover extractable images and videos',
+                        'Ingresa una URL para descubrir imágenes y videos extraíbles',
                   ),
                   const SizedBox(height: 24),
 

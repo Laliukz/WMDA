@@ -39,6 +39,16 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
 
   DownloadNotifier(this._ref) : super(const DownloadState());
 
+  /// Saca el item de las descargas activas (ids, items y progreso).
+  void _removeActive(String id) {
+    state = state.copyWith(
+      downloadingIds: Set<String>.from(state.downloadingIds)..remove(id),
+      downloadingItems:
+          Map<String, MediaItem>.from(state.downloadingItems)..remove(id),
+      progressMap: Map<String, double>.from(state.progressMap)..remove(id),
+    );
+  }
+
   Future<void> download(MediaItem item) async {
     // Registra el item como activo y progreso en 0
     state = state.copyWith(
@@ -60,41 +70,18 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
       );
 
       // Al terminar con éxito, se retira de descargas activas
-      final updatedDownloading = Set<String>.from(state.downloadingIds)
-        ..remove(item.id);
-      final updatedItems = Map<String, MediaItem>.from(state.downloadingItems)
-        ..remove(item.id);
-      final updatedProgress = Map<String, double>.from(state.progressMap)
-        ..remove(item.id);
-
-      state = state.copyWith(
-        downloadingIds: updatedDownloading,
-        downloadingItems: updatedItems,
-        progressMap: updatedProgress,
-      );
+      _removeActive(item.id);
 
       // Refresca el historial automáticamente
       _ref.read(historyProvider.notifier).loadHistory();
     } catch (e) {
-      final updatedDownloading = Set<String>.from(state.downloadingIds)
-        ..remove(item.id);
-      final updatedItems = Map<String, MediaItem>.from(state.downloadingItems)
-        ..remove(item.id);
-      final updatedProgress = Map<String, double>.from(state.progressMap)
-        ..remove(item.id);
+      _removeActive(item.id);
 
       if (e is CancelledFailure) {
-        state = state.copyWith(
-          downloadingIds: updatedDownloading,
-          downloadingItems: updatedItems,
-          progressMap: updatedProgress,
-        );
+        // Cancelada: sin error visible
       } else {
         debugPrint('Error en descarga: $e');
         state = state.copyWith(
-          downloadingIds: updatedDownloading,
-          downloadingItems: updatedItems,
-          progressMap: updatedProgress,
           errorMap: {...state.errorMap, item.id: e.toString()},
         );
       }
@@ -103,20 +90,9 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
 
   void cancel(String id) {
     _ref.read(downloadMediaUseCaseProvider).cancel(id);
-    final updatedDownloading = Set<String>.from(state.downloadingIds)
-      ..remove(id);
-    final updatedItems = Map<String, MediaItem>.from(state.downloadingItems)
-      ..remove(id);
-    final updatedProgress = Map<String, double>.from(state.progressMap)
-      ..remove(id);
-    final updatedErrors = Map<String, String>.from(state.errorMap)
-      ..remove(id);
-
+    _removeActive(id);
     state = state.copyWith(
-      downloadingIds: updatedDownloading,
-      downloadingItems: updatedItems,
-      progressMap: updatedProgress,
-      errorMap: updatedErrors,
+      errorMap: Map<String, String>.from(state.errorMap)..remove(id),
     );
   }
 

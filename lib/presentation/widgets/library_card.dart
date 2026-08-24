@@ -1,11 +1,9 @@
-import 'dart:io';
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/media_item.dart';
+import 'media_thumbnail.dart';
 
 class LibraryCard extends StatelessWidget {
   final MediaItem item;
@@ -20,22 +18,24 @@ class LibraryCard extends StatelessWidget {
   });
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'Recent';
+    if (date == null) return 'Reciente';
     const months = [
-      'Jan',
+      'Ene',
       'Feb',
       'Mar',
-      'Apr',
+      'Abr',
       'May',
       'Jun',
       'Jul',
-      'Aug',
+      'Ago',
       'Sep',
       'Oct',
       'Nov',
-      'Dec',
+      'Dic',
     ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '${date.day} ${months[date.month - 1]}, $hour:$minute';
   }
 
   String _formatSource(String url) {
@@ -50,25 +50,9 @@ class LibraryCard extends StatelessWidget {
     }
   }
 
-  Map<String, String> _imageHeaders(String url) {
-    try {
-      final uri = Uri.parse(url);
-      return {
-        'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Referer': '${uri.scheme}://${uri.host}/',
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      };
-    } catch (_) {
-      return {};
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isVideo = item.type == MediaType.video;
-    final hasLocalFile =
-        item.localPath != null && File(item.localPath!).existsSync();
     final title = item.title?.isNotEmpty == true
         ? item.title!
         : (item.url.split('/').last.split('?').first);
@@ -92,7 +76,7 @@ class LibraryCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   // Imagen (desde archivo local o red) o Fallback de Video
-                  _buildMediaPreview(hasLocalFile, isVideo),
+                  MediaThumbnail(item: item),
 
                   // Botón central de Play si es video
                   if (isVideo)
@@ -145,7 +129,7 @@ class LibraryCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isVideo ? 'Video' : 'Image',
+                            isVideo ? 'Video' : 'Imagen',
                             style: AppTypography.labelSmall.copyWith(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -236,99 +220,6 @@ class LibraryCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMediaPreview(bool hasLocalFile, bool isVideo) {
-    if (hasLocalFile && !isVideo) {
-      return Image.file(File(item.localPath!), fit: BoxFit.cover);
-    }
-
-    final imagePreviewUrl = item.previewUrl;
-    final hasValidImagePreview = imagePreviewUrl != null &&
-        imagePreviewUrl.isNotEmpty &&
-        !imagePreviewUrl.toLowerCase().endsWith('.mp4') &&
-        !imagePreviewUrl.toLowerCase().endsWith('.webm');
-
-    if (hasValidImagePreview) {
-      return CachedNetworkImage(
-        imageUrl: imagePreviewUrl,
-        httpHeaders: _imageHeaders(imagePreviewUrl),
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
-          color: AppColors.chipBackground,
-          child: const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.secondary,
-            ),
-          ),
-        ),
-        errorWidget: (context, url, error) => isVideo
-            ? _buildVideoFallback()
-            : Container(
-                color: const Color(0xFFE2E8F0),
-                child: const Center(
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: AppColors.neutral,
-                    size: 32,
-                  ),
-                ),
-              ),
-      );
-    }
-
-    if (isVideo) {
-      return _buildVideoFallback();
-    }
-
-    return CachedNetworkImage(
-      imageUrl: item.url,
-      httpHeaders: _imageHeaders(item.url),
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: AppColors.chipBackground,
-        child: const Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.secondary,
-          ),
-        ),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: const Color(0xFFE2E8F0),
-        child: const Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            color: AppColors.neutral,
-            size: 32,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVideoFallback() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0F172A),
-            Color(0xFF1E293B),
-            AppColors.primary,
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.movie_outlined,
-          size: 40,
-          color: Colors.white.withValues(alpha: 0.2),
-        ),
       ),
     );
   }
