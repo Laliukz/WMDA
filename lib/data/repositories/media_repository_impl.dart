@@ -84,5 +84,15 @@ class MediaRepositoryImpl implements MediaRepository {
 
     await prefs.setStringList(_historyKey, jsonList);
   }
+
+  @override
+  void cancelDownload(String id) {
+    _downloadService.cancelDownload(id);
+  }
+
+  @override
+  void cancelAllDownloads() {
+    _downloadService.cancelAll();
+  }
 }
 

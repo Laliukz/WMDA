@@ -16,4 +16,8 @@ abstract class MediaRepository {
   Future<List<MediaItem>> getDownloadHistory();
   //Eliminar elemento del historial
   Future<void> deleteFromHistory(String id);
+
+  // Cancelar descargas
+  void cancelDownload(String id);
+  void cancelAllDownloads();
 }

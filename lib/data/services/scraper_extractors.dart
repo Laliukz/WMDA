@@ -52,15 +52,22 @@ class ScraperExtractors {
     Uri baseUri,
     String defaultTitle,
   ) {
-    return doc.querySelectorAll('img').map((img) {
-      final rawSrc = img.attributes['src'] ?? img.attributes['data-src'] ?? img.attributes['data-original'];
-      final url = UrlHelper.resolve(baseUri, rawSrc);
-      if (url == null) return null;
-      final title = (img.attributes['alt']?.trim().isNotEmpty ?? false) 
-          ? img.attributes['alt']!.trim() 
-          : defaultTitle;
-      return _createItem(url, title, MediaType.image);
-    }).whereType<MediaItem>().toList();
+    return doc
+        .querySelectorAll('img')
+        .map((img) {
+          final rawSrc =
+              img.attributes['src'] ??
+              img.attributes['data-src'] ??
+              img.attributes['data-original'];
+          final url = UrlHelper.resolve(baseUri, rawSrc);
+          if (url == null) return null;
+          final title = (img.attributes['alt']?.trim().isNotEmpty ?? false)
+              ? img.attributes['alt']!.trim()
+              : defaultTitle;
+          return _createItem(url, title, MediaType.image);
+        })
+        .whereType<MediaItem>()
+        .toList();
   }
 
   //extrae etiquetas video
@@ -69,19 +76,44 @@ class ScraperExtractors {
     Uri baseUri,
     String title,
   ) {
-    final videos = doc.querySelectorAll('video').map((video) {
-      final url = UrlHelper.resolve(baseUri, video.attributes['src']);
-      final poster = UrlHelper.resolve(baseUri, video.attributes['poster']);
-      if (url == null) return null;
-      return _createItem(url, title, MediaType.video, previewUrl: poster);
-    }).whereType<MediaItem>().toList();
+    final List<MediaItem> results = [];
 
-    final sources = doc.querySelectorAll('video source').map((source) {
-      final url = UrlHelper.resolve(baseUri, source.attributes['src']);
-      return url != null ? _createItem(url, title, MediaType.video) : null;
-    }).whereType<MediaItem>().toList();
+    for (final video in doc.querySelectorAll('video')) {
+      final rawPoster = video.attributes['poster'] ??
+          video.attributes['data-poster'] ??
+          video.attributes['data-src'];
+      final poster = UrlHelper.resolve(baseUri, rawPoster);
 
-    return [...videos, ...sources];
+      final rawVideoSrc = video.attributes['src'] ??
+          video.attributes['data-src'] ??
+          video.attributes['data-url'];
+      final videoSrc = UrlHelper.resolve(baseUri, rawVideoSrc);
+
+      if (videoSrc != null) {
+        results.add(
+          _createItem(videoSrc, title, MediaType.video, previewUrl: poster),
+        );
+      }
+
+      for (final source in video.querySelectorAll('source')) {
+        final rawSourceSrc = source.attributes['src'] ??
+            source.attributes['data-src'] ??
+            source.attributes['data-url'];
+        final sourceSrc = UrlHelper.resolve(baseUri, rawSourceSrc);
+        if (sourceSrc != null) {
+          results.add(
+            _createItem(
+              sourceSrc,
+              title,
+              MediaType.video,
+              previewUrl: poster,
+            ),
+          );
+        }
+      }
+    }
+
+    return results;
   }
 
   //extrae enlaces a archivos multimedia
@@ -102,13 +134,17 @@ class ScraperExtractors {
       'avi': MediaType.video,
     };
 
-    return doc.querySelectorAll('a[href]').map((a) {
-      final url = UrlHelper.resolve(baseUri, a.attributes['href']);
-      if (url == null) return null;
-      final ext = UrlHelper.getExtension(Uri.parse(url).path);
-      if (ext == null || !mediaExtensions.containsKey(ext)) return null;
-      return _createItem(url, title, mediaExtensions[ext]!);
-    }).whereType<MediaItem>().toList();
+    return doc
+        .querySelectorAll('a[href]')
+        .map((a) {
+          final url = UrlHelper.resolve(baseUri, a.attributes['href']);
+          if (url == null) return null;
+          final ext = UrlHelper.getExtension(Uri.parse(url).path);
+          if (ext == null || !mediaExtensions.containsKey(ext)) return null;
+          return _createItem(url, title, mediaExtensions[ext]!);
+        })
+        .whereType<MediaItem>()
+        .toList();
   }
 
   static MediaItem _createItem(

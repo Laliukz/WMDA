@@ -50,6 +50,20 @@ class LibraryCard extends StatelessWidget {
     }
   }
 
+  Map<String, String> _imageHeaders(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': '${uri.scheme}://${uri.host}/',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isVideo = item.type == MediaType.video;
@@ -77,33 +91,8 @@ class LibraryCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Imagen (desde archivo local o red)
-                  if (hasLocalFile && !isVideo)
-                    Image.file(File(item.localPath!), fit: BoxFit.cover)
-                  else
-                    CachedNetworkImage(
-                      imageUrl: item.previewUrl ?? item.url,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.chipBackground,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.secondary,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFFE2E8F0),
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            color: AppColors.neutral,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    ),
+                  // Imagen (desde archivo local o red) o Fallback de Video
+                  _buildMediaPreview(hasLocalFile, isVideo),
 
                   // Botón central de Play si es video
                   if (isVideo)
@@ -247,6 +236,99 @@ class LibraryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMediaPreview(bool hasLocalFile, bool isVideo) {
+    if (hasLocalFile && !isVideo) {
+      return Image.file(File(item.localPath!), fit: BoxFit.cover);
+    }
+
+    final imagePreviewUrl = item.previewUrl;
+    final hasValidImagePreview = imagePreviewUrl != null &&
+        imagePreviewUrl.isNotEmpty &&
+        !imagePreviewUrl.toLowerCase().endsWith('.mp4') &&
+        !imagePreviewUrl.toLowerCase().endsWith('.webm');
+
+    if (hasValidImagePreview) {
+      return CachedNetworkImage(
+        imageUrl: imagePreviewUrl,
+        httpHeaders: _imageHeaders(imagePreviewUrl),
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: AppColors.chipBackground,
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.secondary,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => isVideo
+            ? _buildVideoFallback()
+            : Container(
+                color: const Color(0xFFE2E8F0),
+                child: const Center(
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppColors.neutral,
+                    size: 32,
+                  ),
+                ),
+              ),
+      );
+    }
+
+    if (isVideo) {
+      return _buildVideoFallback();
+    }
+
+    return CachedNetworkImage(
+      imageUrl: item.url,
+      httpHeaders: _imageHeaders(item.url),
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: AppColors.chipBackground,
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.secondary,
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: const Color(0xFFE2E8F0),
+        child: const Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: AppColors.neutral,
+            size: 32,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoFallback() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A),
+            Color(0xFF1E293B),
+            AppColors.primary,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.movie_outlined,
+          size: 40,
+          color: Colors.white.withValues(alpha: 0.2),
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../providers/history_provider.dart';
 import '../widgets/home_discovery_banner.dart';
 import '../widgets/recent_media_card.dart';
 import '../widgets/recent_section_header.dart';
+import '../widgets/screen_header.dart';
 
 class HomeScreen extends ConsumerWidget {
   final VoidCallback onNavigateToScan;
@@ -114,30 +115,7 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Branding Superior
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 1.5),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_downward_rounded,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'MediaDownloader',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+              const HeaderBrandRow(),
               const SizedBox(height: 20),
 
               // 2. Banner "Descubre contenido"
