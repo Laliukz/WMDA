@@ -80,7 +80,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     title: 'Scan Website',
                     subtitle:
                         'Enter a URL to dicover extractable images and videos',
-                    spacing: 28,
                   ),
                   const SizedBox(height: 24),
 

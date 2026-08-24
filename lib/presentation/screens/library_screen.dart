@@ -85,7 +85,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               // 1. Header con Filtros
               ScreenHeader(
                 title: 'Library',
-                spacing: 20,
                 trailing: Row(
                   children: [
                     _FilterChip(

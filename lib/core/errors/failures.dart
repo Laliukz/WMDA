@@ -25,3 +25,7 @@ class StorageFailure extends Failure {
 class InvalidUrlFailure extends Failure {
   const InvalidUrlFailure([super.message = 'URL no valida o no soportada']);
 }
+
+class CancelledFailure extends Failure {
+  const CancelledFailure([super.message = 'Descarga cancelada por el usuario']);
+}

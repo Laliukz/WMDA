@@ -19,10 +19,23 @@ class MediaCard extends StatelessWidget {
     this.onTap,
   });
 
+  Map<String, String> _imageHeaders(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': '${uri.scheme}://${uri.host}/',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isVideo = item.type == MediaType.video;
-    final displayUrl = item.previewUrl ?? item.url;
     final extensionLabel = (item.extension ?? (isVideo ? 'mp4' : 'jpg'))
         .toUpperCase();
     final badgeText = '${isVideo ? 'VIDEO' : 'IMAGE'} • $extensionLabel';
@@ -48,30 +61,8 @@ class MediaCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 1. Imagen / Miniatura con CachedNetworkImage
-              CachedNetworkImage(
-                imageUrl: displayUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: AppColors.chipBackground,
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFFE2E8F0),
-                  child: const Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: AppColors.neutral,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ),
+              // 1. Imagen / Miniatura con CachedNetworkImage o Fallback de Video
+              _buildThumbnail(isVideo),
 
               // 2. Gradiente inferior para legibilidad del texto
               Positioned.fill(
@@ -180,6 +171,95 @@ class MediaCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(bool isVideo) {
+    final imagePreviewUrl = item.previewUrl;
+    final hasValidImagePreview = imagePreviewUrl != null &&
+        imagePreviewUrl.isNotEmpty &&
+        !imagePreviewUrl.toLowerCase().endsWith('.mp4') &&
+        !imagePreviewUrl.toLowerCase().endsWith('.webm');
+
+    if (hasValidImagePreview) {
+      return CachedNetworkImage(
+        imageUrl: imagePreviewUrl,
+        httpHeaders: _imageHeaders(imagePreviewUrl),
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: AppColors.chipBackground,
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.secondary,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => isVideo
+            ? _buildVideoPlaceholder()
+            : Container(
+                color: const Color(0xFFE2E8F0),
+                child: const Center(
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppColors.neutral,
+                    size: 32,
+                  ),
+                ),
+              ),
+      );
+    }
+
+    if (isVideo) {
+      return _buildVideoPlaceholder();
+    }
+
+    return CachedNetworkImage(
+      imageUrl: item.url,
+      httpHeaders: _imageHeaders(item.url),
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: AppColors.chipBackground,
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.secondary,
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: const Color(0xFFE2E8F0),
+        child: const Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: AppColors.neutral,
+            size: 32,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPlaceholder() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A),
+            Color(0xFF1E293B),
+            AppColors.primary,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.movie_outlined,
+          size: 40,
+          color: Colors.white.withValues(alpha: 0.2),
         ),
       ),
     );

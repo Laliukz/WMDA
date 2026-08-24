@@ -12,4 +12,12 @@ class DownloadMediaUsecase {
   }) async {
     return await _repository.downloadMedia(item, onProgress: onProgress);
   }
+
+  void cancel(String id) {
+    _repository.cancelDownload(id);
+  }
+
+  void cancelAll() {
+    _repository.cancelAllDownloads();
+  }
 }

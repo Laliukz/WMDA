@@ -27,9 +27,6 @@ class DownloadsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: ScreenHeader(
                 title: 'Descargas Activas',
-                spacing: 16,
-                accentColor: AppColors.secondary,
-                icon: Icons.download_rounded,
                 trailing: activeItems.isEmpty
                     ? null
                     : Container(
@@ -51,16 +48,66 @@ class DownloadsScreen extends ConsumerWidget {
                       ),
               ),
             ),
-            const Divider(height: 1, color: AppColors.border),
+
+            // Barra de acción para cancelar todas si hay descargas activas
+            if (activeItems.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'En cola / procesando',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.neutral,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        ref.read(downloadProvider.notifier).cancelAll();
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.cancel_outlined,
+                              size: 15,
+                              color: Color(0xFFD32F2F),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Cancelar todas',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: const Color(0xFFD32F2F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Contenido: Lista activa o estado vacío
             Expanded(
               child: activeItems.isEmpty
                   ? _buildEmptyState()
                   : ListView.separated(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       itemCount: activeItems.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      separatorBuilder: (_, _) => const SizedBox(height: 14),
                       itemBuilder: (context, index) {
                         final item = activeItems[index];
                         final progress =
@@ -68,6 +115,9 @@ class DownloadsScreen extends ConsumerWidget {
                         return _ActiveDownloadCard(
                           item: item,
                           progress: progress,
+                          onCancel: () {
+                            ref.read(downloadProvider.notifier).cancel(item.id);
+                          },
                         );
                       },
                     ),
@@ -123,12 +173,16 @@ class DownloadsScreen extends ConsumerWidget {
 class _ActiveDownloadCard extends StatelessWidget {
   final MediaItem item;
   final double progress;
+  final VoidCallback onCancel;
 
-  const _ActiveDownloadCard({required this.item, required this.progress});
+  const _ActiveDownloadCard({
+    required this.item,
+    required this.progress,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final displayUrl = item.previewUrl ?? item.url;
     final isVideo = item.type == MediaType.video;
     final percentage = (progress * 100).clamp(0, 100).toInt();
 
@@ -158,21 +212,7 @@ class _ActiveDownloadCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(
-                    imageUrl: displayUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) =>
-                        Container(color: AppColors.chipBackground),
-                    errorWidget: (_, __, ___) => Container(
-                      color: AppColors.chipBackground,
-                      child: Icon(
-                        isVideo
-                            ? Icons.videocam_outlined
-                            : Icons.image_outlined,
-                        color: AppColors.neutral,
-                      ),
-                    ),
-                  ),
+                  _buildThumbnail(isVideo),
                   Positioned(
                     bottom: 4,
                     right: 4,
@@ -267,7 +307,103 @@ class _ActiveDownloadCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 10),
+
+          // Botón para cancelar descarga individual
+          IconButton(
+            onPressed: onCancel,
+            icon: const Icon(
+              Icons.close_rounded,
+              color: AppColors.neutral,
+              size: 20,
+            ),
+            tooltip: 'Cancelar descarga',
+            splashRadius: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
         ],
+      ),
+    );
+  }
+
+  Map<String, String> _imageHeaders(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': '${uri.scheme}://${uri.host}/',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Widget _buildThumbnail(bool isVideo) {
+    final imagePreviewUrl = item.previewUrl;
+    final hasValidImagePreview = imagePreviewUrl != null &&
+        imagePreviewUrl.isNotEmpty &&
+        !imagePreviewUrl.toLowerCase().endsWith('.mp4') &&
+        !imagePreviewUrl.toLowerCase().endsWith('.webm');
+
+    if (hasValidImagePreview) {
+      return CachedNetworkImage(
+        imageUrl: imagePreviewUrl,
+        httpHeaders: _imageHeaders(imagePreviewUrl),
+        fit: BoxFit.cover,
+        placeholder: (_, _) => Container(color: AppColors.chipBackground),
+        errorWidget: (_, _, _) => isVideo
+            ? _buildVideoPlaceholder()
+            : Container(
+                color: AppColors.chipBackground,
+                child: const Icon(
+                  Icons.image_outlined,
+                  color: AppColors.neutral,
+                ),
+              ),
+      );
+    }
+
+    if (isVideo) {
+      return _buildVideoPlaceholder();
+    }
+
+    return CachedNetworkImage(
+      imageUrl: item.url,
+      httpHeaders: _imageHeaders(item.url),
+      fit: BoxFit.cover,
+      placeholder: (_, _) => Container(color: AppColors.chipBackground),
+      errorWidget: (_, _, _) => Container(
+        color: AppColors.chipBackground,
+        child: const Icon(
+          Icons.image_outlined,
+          color: AppColors.neutral,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPlaceholder() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A),
+            Color(0xFF1E293B),
+            AppColors.primary,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.movie_outlined,
+          size: 24,
+          color: Colors.white.withValues(alpha: 0.25),
+        ),
       ),
     );
   }
