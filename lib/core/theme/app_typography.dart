@@ -41,4 +41,23 @@ class AppTypography {
     letterSpacing: 0.5,
     color: Colors.white,
   );
+
+  static TextStyle labelLarge = GoogleFonts.jetBrainsMono(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: AppColors.neutral,
+  );
+
+  static TextStyle button = GoogleFonts.jetBrainsMono(
+    fontSize: 14,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+    letterSpacing: 0.5,
+  );
+
+  static TextStyle labelSmall = GoogleFonts.jetBrainsMono(
+    fontSize: 12,
+    fontWeight: FontWeight.bold,
+    color: AppColors.dark,
+  );
 }

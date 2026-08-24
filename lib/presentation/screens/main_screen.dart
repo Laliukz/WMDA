@@ -5,6 +5,8 @@ import '../../core/theme/app_typography.dart';
 import '../widgets/app_bottom_nav_bar.dart';
 import 'scan_screen.dart';
 
+import 'downloads_screen.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -15,11 +17,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 1; // Inicia en la pestaña 'Scan' (índice 1)
 
-  final List<Widget> _screens = const [
-    _PlaceholderTab(title: 'Home', subtitle: 'Resumen y estadísticas'),
-    ScanScreen(),
-    _PlaceholderTab(title: 'Downloads', subtitle: 'Descargas activas'),
-    _PlaceholderTab(title: 'Library', subtitle: 'Historial de medios'),
+  final List<Widget> _screens = [
+    const _PlaceholderTab(title: 'Home', subtitle: 'Resumen y estadísticas'),
+    const ScanScreen(),
+    const DownloadsScreen(),
+    const _PlaceholderTab(title: 'Library', subtitle: 'Historial de medios'),
   ];
 
   @override

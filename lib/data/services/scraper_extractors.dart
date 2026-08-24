@@ -23,30 +23,27 @@ class ScraperExtractors {
     Uri baseUri,
     String title,
   ) {
-    final items = <MediaItem>[];
+    final images = doc
+        .querySelectorAll(
+          'meta[property="og:image"], meta[name="twitter:image"]',
+        )
+        .map((meta) {
+          final url = UrlHelper.resolve(baseUri, meta.attributes['content']);
+          return url != null ? _createItem(url, title, MediaType.image) : null;
+        })
+        .whereType<MediaItem>();
 
-    //imagenes
-    final ogImages = doc.querySelectorAll(
-      'meta[property="og:image"], meta[name="twitter:image"]',
-    );
-    for (var meta in ogImages) {
-      final url = UrlHelper.resolve(baseUri, meta.attributes['content']);
-      if (url != null) {
-        items.add(_createItem(url, title, MediaType.image));
-      }
-    }
+    final videos = doc
+        .querySelectorAll(
+          'meta[property="og:video"], meta[property="og:video:url"]',
+        )
+        .map((meta) {
+          final url = UrlHelper.resolve(baseUri, meta.attributes['content']);
+          return url != null ? _createItem(url, title, MediaType.video) : null;
+        })
+        .whereType<MediaItem>();
 
-    //videos
-    final ogVideos = doc.querySelectorAll(
-      'meta[property="og:video"], meta[property="og:video:url"]',
-    );
-    for (var meta in ogVideos) {
-      final url = UrlHelper.resolve(baseUri, meta.attributes['content']);
-      if (url != null) {
-        items.add(_createItem(url, title, MediaType.video));
-      }
-    }
-    return items;
+    return [...images, ...videos];
   }
 
   //extrae etiquetas img
@@ -55,22 +52,15 @@ class ScraperExtractors {
     Uri baseUri,
     String defaultTitle,
   ) {
-    final items = <MediaItem>[];
-    final images = doc.querySelectorAll('img');
-
-    for (var img in images) {
-      final rawSrc =
-          img.attributes['src'] ??
-          img.attributes['data-src'] ??
-          img.attributes['data-original'];
+    return doc.querySelectorAll('img').map((img) {
+      final rawSrc = img.attributes['src'] ?? img.attributes['data-src'] ?? img.attributes['data-original'];
       final url = UrlHelper.resolve(baseUri, rawSrc);
-      if (url != null) {
-        final alt = img.attributes['alt']?.trim();
-        final title = (alt != null && alt.isNotEmpty) ? alt : defaultTitle;
-        items.add(_createItem(url, title, MediaType.image));
-      }
-    }
-    return items;
+      if (url == null) return null;
+      final title = (img.attributes['alt']?.trim().isNotEmpty ?? false) 
+          ? img.attributes['alt']!.trim() 
+          : defaultTitle;
+      return _createItem(url, title, MediaType.image);
+    }).whereType<MediaItem>().toList();
   }
 
   //extrae etiquetas video
@@ -79,22 +69,19 @@ class ScraperExtractors {
     Uri baseUri,
     String title,
   ) {
-    final items = <MediaItem>[];
-    for (var video in doc.querySelectorAll('video')) {
+    final videos = doc.querySelectorAll('video').map((video) {
       final url = UrlHelper.resolve(baseUri, video.attributes['src']);
       final poster = UrlHelper.resolve(baseUri, video.attributes['poster']);
-      if (url != null) {
-        items.add(_createItem(url, title, MediaType.video, previewUrl: poster));
-      }
-    }
+      if (url == null) return null;
+      return _createItem(url, title, MediaType.video, previewUrl: poster);
+    }).whereType<MediaItem>().toList();
 
-    for (var source in doc.querySelectorAll('video source')) {
+    final sources = doc.querySelectorAll('video source').map((source) {
       final url = UrlHelper.resolve(baseUri, source.attributes['src']);
-      if (url != null) {
-        items.add(_createItem(url, title, MediaType.video));
-      }
-    }
-    return items;
+      return url != null ? _createItem(url, title, MediaType.video) : null;
+    }).whereType<MediaItem>().toList();
+
+    return [...videos, ...sources];
   }
 
   //extrae enlaces a archivos multimedia
@@ -103,7 +90,6 @@ class ScraperExtractors {
     Uri baseUri,
     String title,
   ) {
-    final items = <MediaItem>[];
     final mediaExtensions = {
       'jpg': MediaType.image,
       'jpeg': MediaType.image,
@@ -116,16 +102,13 @@ class ScraperExtractors {
       'avi': MediaType.video,
     };
 
-    for (var a in doc.querySelectorAll('a[href]')) {
+    return doc.querySelectorAll('a[href]').map((a) {
       final url = UrlHelper.resolve(baseUri, a.attributes['href']);
-      if (url != null) {
-        final ext = UrlHelper.getExtension(Uri.parse(url).path);
-        if (ext != null && mediaExtensions.containsKey(ext)) {
-          items.add(_createItem(url, title, mediaExtensions[ext]!));
-        }
-      }
-    }
-    return items;
+      if (url == null) return null;
+      final ext = UrlHelper.getExtension(Uri.parse(url).path);
+      if (ext == null || !mediaExtensions.containsKey(ext)) return null;
+      return _createItem(url, title, mediaExtensions[ext]!);
+    }).whereType<MediaItem>().toList();
   }
 
   static MediaItem _createItem(
