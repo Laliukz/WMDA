@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -139,8 +140,14 @@ class DownloadService {
           } else {
             await Gal.putImage(filePath, album: 'WMDA');
           }
+        } else {
+          debugPrint(
+            'WMDA: sin acceso a galería, archivo solo en ${file.path}',
+          );
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('WMDA: fallo al copiar a galería: $e');
+      }
 
       return file.path;
     } catch (e) {
@@ -148,7 +155,9 @@ class DownloadService {
         if (file != null && file.existsSync()) {
           try {
             file.deleteSync();
-          } catch (_) {}
+          } catch (deleteError) {
+            debugPrint('WMDA: fallo al borrar archivo parcial: $deleteError');
+          }
         }
         throw const CancelledFailure();
       }
@@ -186,7 +195,7 @@ class DownloadService {
   }
 
   String _sanitizeFileName(String name) {
-    //quitqamos caracteres no validos
+    //quitamos caracteres no validos
     return name
         .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
         .replaceAll(RegExp(r'\s+'), '_')

@@ -84,18 +84,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             children: [
               // 1. Header con Filtros
               ScreenHeader(
-                title: 'Library',
+                title: 'Biblioteca',
                 trailing: Row(
                   children: [
                     _FilterChip(
-                      label: 'All',
+                      label: 'Todos',
                       isSelected: _selectedFilter == MediaFilter.all,
                       onTap: () =>
                           setState(() => _selectedFilter = MediaFilter.all),
                     ),
                     const SizedBox(width: 6),
                     _FilterChip(
-                      label: 'Images',
+                      label: 'Imágenes',
                       isSelected: _selectedFilter == MediaFilter.images,
                       onTap: () =>
                           setState(() => _selectedFilter = MediaFilter.images),

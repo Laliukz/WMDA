@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/media_item.dart';
+import 'media_thumbnail.dart';
 
 class DownloadPreviewCard extends StatelessWidget {
   final MediaItem item;
@@ -19,7 +19,6 @@ class DownloadPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayUrl = item.previewUrl ?? item.url;
     final isVideo = item.type == MediaType.video;
 
     return Container(
@@ -35,29 +34,7 @@ class DownloadPreviewCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             //miniatura
-            CachedNetworkImage(
-              imageUrl: displayUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppColors.chipBackground,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.secondary,
-                  ),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: const Color(0xFFE2E8F0),
-                child: Center(
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: AppColors.neutral,
-                    size: 32,
-                  ),
-                ),
-              ),
-            ),
+            MediaThumbnail(item: item),
             //Badge
             Positioned(
               top: 20,

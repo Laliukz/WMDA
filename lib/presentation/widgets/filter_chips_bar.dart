@@ -31,7 +31,7 @@ class FilterChipsBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'RESULTS',
+                'RESULTADOS',
                 style: AppTypography.label.copyWith(
                   fontSize: 11,
                   letterSpacing: 1.2,
@@ -40,7 +40,7 @@ class FilterChipsBar extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '$totalCount items\nfound',
+                '$totalCount elementos\nencontrados',
                 style: AppTypography.bodyLarge.copyWith(
                   fontWeight: FontWeight.bold,
                   height: 1.1,
@@ -54,9 +54,9 @@ class FilterChipsBar extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildChip('ALL', MediaFilter.all),
+            _buildChip('Todos', MediaFilter.all),
             const SizedBox(width: 6),
-            _buildChip('Images\n($imagesCount)', MediaFilter.images),
+            _buildChip('Imágenes\n($imagesCount)', MediaFilter.images),
             const SizedBox(width: 6),
             _buildChip('Videos\n($videosCount)', MediaFilter.videos),
           ],

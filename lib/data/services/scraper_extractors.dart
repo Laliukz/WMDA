@@ -29,7 +29,9 @@ class ScraperExtractors {
         )
         .map((meta) {
           final url = UrlHelper.resolve(baseUri, meta.attributes['content']);
-          return url != null ? _createItem(url, title, MediaType.image) : null;
+          return url != null
+              ? _createItem(baseUri, url, title, MediaType.image)
+              : null;
         })
         .whereType<MediaItem>();
 
@@ -39,7 +41,9 @@ class ScraperExtractors {
         )
         .map((meta) {
           final url = UrlHelper.resolve(baseUri, meta.attributes['content']);
-          return url != null ? _createItem(url, title, MediaType.video) : null;
+          return url != null
+              ? _createItem(baseUri, url, title, MediaType.video)
+              : null;
         })
         .whereType<MediaItem>();
 
@@ -64,7 +68,7 @@ class ScraperExtractors {
           final title = (img.attributes['alt']?.trim().isNotEmpty ?? false)
               ? img.attributes['alt']!.trim()
               : defaultTitle;
-          return _createItem(url, title, MediaType.image);
+          return _createItem(baseUri, url, title, MediaType.image);
         })
         .whereType<MediaItem>()
         .toList();
@@ -91,7 +95,13 @@ class ScraperExtractors {
 
       if (videoSrc != null) {
         results.add(
-          _createItem(videoSrc, title, MediaType.video, previewUrl: poster),
+          _createItem(
+            baseUri,
+            videoSrc,
+            title,
+            MediaType.video,
+            previewUrl: poster,
+          ),
         );
       }
 
@@ -103,6 +113,7 @@ class ScraperExtractors {
         if (sourceSrc != null) {
           results.add(
             _createItem(
+              baseUri,
               sourceSrc,
               title,
               MediaType.video,
@@ -141,20 +152,22 @@ class ScraperExtractors {
           if (url == null) return null;
           final ext = UrlHelper.getExtension(Uri.parse(url).path);
           if (ext == null || !mediaExtensions.containsKey(ext)) return null;
-          return _createItem(url, title, mediaExtensions[ext]!);
+          return _createItem(baseUri, url, title, mediaExtensions[ext]!);
         })
         .whereType<MediaItem>()
         .toList();
   }
 
   static MediaItem _createItem(
+    Uri baseUri,
     String url,
     String title,
     MediaType type, {
     String? previewUrl,
   }) {
     return MediaItem(
-      id: url,
+      // id con host: la misma imagen servida por dos sitios no colisiona
+      id: '${baseUri.host}#$url',
       url: url,
       previewUrl: previewUrl ?? url,
       title: title,
