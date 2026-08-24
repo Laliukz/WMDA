@@ -31,7 +31,7 @@ class UrlInputBar extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'https://example.com',
               hintStyle: AppTypography.bodyMedium.copyWith(
-                color: AppColors.neutral.withOpacity(0.6),
+                color: AppColors.neutral.withValues(alpha: 0.6),
               ),
               prefixIcon: const Icon(
                 Icons.link,
