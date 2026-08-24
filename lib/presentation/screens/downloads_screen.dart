@@ -13,7 +13,6 @@ import '../widgets/downloads_header.dart';
 class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
 
-  // Helper para estimar tamaño visual si no viene de la red
   String _estimateItemSize(MediaItem item) {
     if (item.type == MediaType.video) {
       return '150 MB';
@@ -23,7 +22,6 @@ class DownloadsScreen extends ConsumerWidget {
     return '$mb MB';
   }
 
-  // Helper para calcular total aproximado
   String _calculateTotalSize(List<MediaItem> items) {
     if (items.isEmpty) return '0 MB';
     double totalMb = 0;
@@ -47,7 +45,6 @@ class DownloadsScreen extends ConsumerWidget {
     final downloadState = ref.watch(downloadProvider);
     final isDownloading = downloadState.downloadingIds.isNotEmpty;
 
-    // Si no hay elementos seleccionados, mostramos vista vacía elegante
     if (selectedItems.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.tertiary,
@@ -66,7 +63,7 @@ class DownloadsScreen extends ConsumerWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppColors.chipBackground,
                             shape: BoxShape.circle,
                           ),
@@ -102,7 +99,6 @@ class DownloadsScreen extends ConsumerWidget {
       );
     }
 
-    // Si hay elementos seleccionados, armamos el mosaico idéntico al diseño
     final totalSizeLabel = _calculateTotalSize(selectedItems);
 
     return Scaffold(
@@ -118,7 +114,6 @@ class DownloadsScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // 2. Mosaico Adaptativo de medios seleccionados
-              // 2.1 Primer elemento destacado
               DownloadPreviewCard(
                 item: selectedItems[0],
                 sizeLabel: _estimateItemSize(selectedItems[0]),
@@ -126,7 +121,6 @@ class DownloadsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-              // 2.2 Si hay 2 o más elementos (fila de 2)
               if (selectedItems.length >= 2) ...[
                 Row(
                   children: [
@@ -152,7 +146,6 @@ class DownloadsScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
               ],
 
-              // 2.3 Si hay 4 o más elementos (tarjetas horizontales)
               if (selectedItems.length >= 4) ...[
                 for (int i = 3; i < selectedItems.length; i++) ...[
                   DownloadPreviewCard(
@@ -166,18 +159,20 @@ class DownloadsScreen extends ConsumerWidget {
 
               const SizedBox(height: 12),
 
-              // 3. Footer con Tamaño Total y Botón de Descarga Real
+              // 3. Footer con Tamaño Total y Botón de Descarga
               DownloadSummaryFooter(
                 totalSize: totalSizeLabel,
                 isDownloading: isDownloading,
                 onDownloadAll: () async {
-                  for (final item in selectedItems) {
+                  final itemsToDownload = List<MediaItem>.from(selectedItems);
+                  for (final item in itemsToDownload) {
                     await ref.read(downloadProvider.notifier).download(item);
                   }
+                  ref.read(selectedMediaProvider.notifier).clearSelection();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('¡Descarga completada con éxito!'),
+                        content: Text('¡Descargas completadas con éxito!'),
                         backgroundColor: AppColors.primary,
                       ),
                     );

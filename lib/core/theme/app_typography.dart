@@ -60,4 +60,15 @@ class AppTypography {
     fontWeight: FontWeight.bold,
     color: AppColors.dark,
   );
+
+  static TextStyle bodySmall = GoogleFonts.hankenGrotesk(
+    fontSize: 13,
+    color: AppColors.neutral,
+  );
+
+  static TextStyle headlineSmall = GoogleFonts.dmSerifDisplay(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: AppColors.dark,
+  );
 }

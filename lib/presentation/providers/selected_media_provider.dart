@@ -17,7 +17,7 @@ class SelectedMediaNotifier extends StateNotifier<List<MediaItem>> {
     state = items;
   }
 
-  void selectedAll(List<MediaItem> items) {
+  void selectAll(List<MediaItem> items) {
     state = List.from(items);
   }
 
