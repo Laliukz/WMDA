@@ -11,7 +11,10 @@ class HistoryNotifier extends StateNotifier<AsyncValue<List<MediaItem>>> {
   }
 
   Future<void> loadHistory() async {
-    state = const AsyncValue.loading();
+    // ponytail: solo spinner inicial; refrescos conservan datos visibles
+    if (state.valueOrNull == null && state is! AsyncError) {
+      state = const AsyncValue.loading();
+    }
     try {
       final getHistory = _ref.read(getHistoryUseCaseProvider);
       final items = await getHistory();

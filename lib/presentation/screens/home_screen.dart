@@ -56,6 +56,7 @@ class HomeScreen extends ConsumerWidget {
   void _showPreviewDialog(BuildContext context, MediaItem item) {
     final hasLocalFile =
         item.localPath != null && File(item.localPath!).existsSync();
+    final isLocalVideo = hasLocalFile && item.type == MediaType.video;
 
     showDialog(
       context: context,
@@ -71,6 +72,16 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 if (hasLocalFile && item.type == MediaType.image)
                   Image.file(File(item.localPath!), fit: BoxFit.contain)
+                else if (isLocalVideo)
+                  // ponytail: sin player, icono en vez de Image.network al video
+                  const Padding(
+                    padding: EdgeInsets.all(48.0),
+                    child: Icon(
+                      Icons.videocam_outlined,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                  )
                 else
                   Image.network(
                     item.previewUrl ?? item.url,
@@ -134,7 +145,15 @@ class HomeScreen extends ConsumerWidget {
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 ),
-                error: (error, stack) => const SizedBox(),
+                error: (error, stack) => Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    'No se pudo cargar el historial',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.neutral,
+                    ),
+                  ),
+                ),
                 data: (items) {
                   if (items.isEmpty) {
                     return Container(
@@ -175,9 +194,7 @@ class HomeScreen extends ConsumerWidget {
                         child: RecentMediaCard(
                           item: item,
                           dateLabel: _formatRecentDate(item.downloadedAt),
-                          sizeLabel: item.type == MediaType.video
-                              ? '150 MB'
-                              : '12 MB',
+                          sizeLabel: _sizeLabel(item),
                           onTap: () => _showPreviewDialog(context, item),
                         ),
                       );
@@ -191,5 +208,23 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _sizeLabel(MediaItem item) {
+    final path = item.localPath;
+    if (path != null && path.isNotEmpty) {
+      try {
+        final f = File(path);
+        if (f.existsSync()) {
+          final bytes = f.lengthSync();
+          if (bytes < 1024) return '$bytes B';
+          if (bytes < 1024 * 1024) {
+            return '${(bytes / 1024).toStringAsFixed(1)} KB';
+          }
+          return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+        }
+      } catch (_) {}
+    }
+    return '—';
   }
 }

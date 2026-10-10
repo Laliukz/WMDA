@@ -24,6 +24,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _showPreviewDialog(BuildContext context, MediaItem item) {
     final hasLocalFile =
         item.localPath != null && File(item.localPath!).existsSync();
+    final isLocalVideo = hasLocalFile && item.type == MediaType.video;
 
     showDialog(
       context: context,
@@ -39,6 +40,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               children: [
                 if (hasLocalFile && item.type == MediaType.image)
                   Image.file(File(item.localPath!), fit: BoxFit.contain)
+                else if (isLocalVideo)
+                  const Padding(
+                    padding: EdgeInsets.all(48.0),
+                    child: Icon(
+                      Icons.videocam_outlined,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                  )
                 else
                   Image.network(
                     item.previewUrl ?? item.url,
@@ -151,14 +161,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No downloads yet',
+                              'Sin descargas todavía',
                               style: AppTypography.headlineMedium.copyWith(
                                 color: AppColors.dark,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Downloaded media will appear here.',
+                              'El contenido descargado aparecerá aquí.',
                               style: AppTypography.bodyMedium.copyWith(
                                 color: AppColors.neutral,
                               ),

@@ -8,7 +8,7 @@ class UrlHelper {
     return trimmed;
   }
 
-  //resuelve la url relativa o absoluta usando la base del sitio
+  //resuelve la url relativa o absoluta usando la URL base
   static String? resolve(Uri baseUri, String? rawUrl) {
     if (rawUrl == null || rawUrl.trim().isEmpty) return null;
     final trimmed = rawUrl.trim();
@@ -20,9 +20,11 @@ class UrlHelper {
 
   //Obtenemos la extencion del archivo
   static String? getExtension(String path) {
-    final lasDot = path.lastIndexOf('.');
-    if (lasDot != -1 && lasDot < path.length - 1) {
-      final ext = path.substring(lasDot + 1).toLowerCase();
+    // URLs tipo .../video_preview.mp4/ (barra final) también valen
+    final clean = path.replaceAll(RegExp(r'/+$'), '');
+    final lastDot = clean.lastIndexOf('.');
+    if (lastDot != -1 && lastDot < clean.length - 1) {
+      final ext = clean.substring(lastDot + 1).toLowerCase();
       if (ext.length <= 5 && RegExp(r'^[a-z0-9]+$').hasMatch(ext)) {
         return ext;
       }

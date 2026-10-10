@@ -13,20 +13,8 @@ class SelectedMediaNotifier extends StateNotifier<List<MediaItem>> {
     }
   }
 
-  void setSelected(List<MediaItem> items) {
-    state = items;
-  }
-
-  void selectAll(List<MediaItem> items) {
-    state = List.from(items);
-  }
-
   void clearSelection() {
     state = [];
-  }
-
-  bool isSelected(String id) {
-    return state.any((e) => e.id == id);
   }
 }
 

@@ -11,6 +11,7 @@ class MediaItemModel extends MediaItem {
     super.localPath,
     super.downloadedAt,
     super.isDownloaded,
+    super.referer,
   });
 
   //modelo a partir de una entidad de dominio
@@ -25,14 +26,18 @@ class MediaItemModel extends MediaItem {
       localPath: entity.localPath,
       downloadedAt: entity.downloadedAt,
       isDownloaded: entity.isDownloaded,
+      referer: entity.referer,
     );
   }
 
   //convertir un JSON a MediaItemModel
   factory MediaItemModel.fromMap(Map<String, dynamic> map) {
+    final id = map['id'] as String? ?? '';
+    final url = map['url'] as String? ?? '';
+    if (id.isEmpty || url.isEmpty) throw const FormatException('Media corrupto');
     return MediaItemModel(
-      id: map['id'] as String,
-      url: map['url'] as String,
+      id: id,
+      url: url,
       previewUrl: map['previewUrl'] as String?,
       title: map['title'] as String?,
       type: MediaType.values.firstWhere(
@@ -45,6 +50,7 @@ class MediaItemModel extends MediaItem {
           ? DateTime.tryParse(map['downloadedAt'] as String)
           : null,
       isDownloaded: map['isDownloaded'] as bool? ?? false,
+      referer: map['referer'] as String?,
     );
   }
   //convierte el modelo a un JSON para guardarlo local
@@ -59,6 +65,7 @@ class MediaItemModel extends MediaItem {
       'localPath': localPath,
       'downloadedAt': downloadedAt?.toIso8601String(),
       'isDownloaded': isDownloaded,
+      'referer': referer,
     };
   }
 }

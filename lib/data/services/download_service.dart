@@ -15,15 +15,21 @@ class DownloadService {
 
   DownloadService({http.Client? client}) : _client = client ?? http.Client();
 
-  Map<String, String> _buildHeaders(Uri uri, MediaType type) {
+  Map<String, String> _buildHeaders(MediaItem item, Uri uri) {
+    // ponytail: varios CDNs devuelven 404 si el Referer no es la URL
+    // de origen; sin referer conocido se usa el host del archivo
+    final page =
+        (item.referer != null && item.referer!.isNotEmpty)
+            ? Uri.parse(item.referer!)
+            : Uri.parse('${uri.scheme}://${uri.host}/');
     return {
       'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': '*/*',
       'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-      'Referer': '${uri.scheme}://${uri.host}/',
-      'Origin': '${uri.scheme}://${uri.host}',
-      'Sec-Fetch-Dest': type == MediaType.video ? 'video' : 'image',
+      'Referer': page.toString(),
+      'Origin': '${page.scheme}://${page.host}',
+      'Sec-Fetch-Dest': item.type == MediaType.video ? 'video' : 'image',
       'Sec-Fetch-Mode': 'no-cors',
       'Sec-Fetch-Site': 'cross-site',
     };
@@ -38,18 +44,17 @@ class DownloadService {
     IOSink? sink;
     StreamSubscription<List<int>>? subscription;
     bool isCancelled = false;
+    // ponytail: asFuture() no siempre completa tras cancel(); Completer propio sí
+    final done = Completer<void>();
 
     void cancelCallback() {
       isCancelled = true;
       subscription?.cancel();
+      if (!done.isCompleted) done.complete();
+      // ponytail: close best-effort; borrado real ocurre en catch tras close
       try {
         sink?.close();
       } catch (_) {}
-      if (file != null && file.existsSync()) {
-        try {
-          file.deleteSync();
-        } catch (_) {}
-      }
     }
 
     _cancelTokens[item.id] = cancelCallback;
@@ -60,7 +65,7 @@ class DownloadService {
 
       // Intentos con diferentes combinaciones de cabeceras para sortear bloqueos 403 / anti-hotlink
       final headerAttempts = [
-        _buildHeaders(uri, item.type),
+        _buildHeaders(item, uri),
         {
           'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -75,7 +80,9 @@ class DownloadService {
         if (headers.isNotEmpty) {
           request.headers.addAll(headers);
         }
-        final res = await _client.send(request);
+        final res = await _client
+            .send(request)
+            .timeout(const Duration(seconds: 30));
         if (res.statusCode >= 200 && res.statusCode < 300) {
           response = res;
           break;
@@ -104,26 +111,44 @@ class DownloadService {
       final directory = await _getStorageDirectory();
       final extension =
           item.extension ?? (item.type == MediaType.video ? 'mp4' : 'jpg');
-      final fileName =
-          '${_sanitizeFileName(item.title ?? 'media_${item.id.hashCode}')}.$extension';
+      final baseName = _sanitizeFileName(
+        item.title ?? 'media_${item.id.hashCode}',
+      );
 
-      final filePath = '${directory.path}/$fileName';
-      file = File(filePath);
-      sink = file.openWrite();
+      final savedFile = _uniqueFile(directory, baseName, extension);
+      file = savedFile;
+      sink = savedFile.openWrite();
 
-      subscription = response.stream.listen((chunk) {
-        if (isCancelled) return;
-        sink?.add(chunk);
-        receivedBytes += chunk.length;
-        if (totalBytes > 0 && onProgress != null) {
-          onProgress(receivedBytes / totalBytes);
-        }
-      });
+      subscription = response.stream.listen(
+        (chunk) {
+          if (isCancelled) return;
+          sink?.add(chunk);
+          receivedBytes += chunk.length;
+          // Sin content-length el progreso es indeterminado (-1): la UI
+          // muestra barra animada en vez de un 0% congelado
+          if (onProgress != null) {
+            onProgress(totalBytes > 0 ? receivedBytes / totalBytes : -1);
+          }
+        },
+        onDone: () {
+          if (!done.isCompleted) done.complete();
+        },
+        onError: (Object e, StackTrace st) {
+          if (!done.isCompleted) done.completeError(e, st);
+        },
+        cancelOnError: true,
+      );
 
-      await subscription.asFuture();
+      await done.future;
 
       if (isCancelled) {
         throw const CancelledFailure();
+      }
+
+      // El stream puede cerrar sin error con bytes faltantes: eso es
+      // descarga corrupta, no éxito
+      if (totalBytes > 0 && receivedBytes < totalBytes) {
+        throw const ServerFailure('Descarga incompleta del archivo');
       }
 
       await sink.flush();
@@ -136,32 +161,47 @@ class DownloadService {
       try {
         if (await Gal.requestAccess()) {
           if (item.type == MediaType.video) {
-            await Gal.putVideo(filePath, album: 'WMDA');
+            await Gal.putVideo(savedFile.path, album: 'WMDA');
           } else {
-            await Gal.putImage(filePath, album: 'WMDA');
+            await Gal.putImage(savedFile.path, album: 'WMDA');
           }
         } else {
           debugPrint(
-            'WMDA: sin acceso a galería, archivo solo en ${file.path}',
+            'WMDA: sin acceso a galería, archivo solo en ${savedFile.path}',
           );
         }
       } catch (e) {
         debugPrint('WMDA: fallo al copiar a galería: $e');
       }
 
-      return file.path;
+      return savedFile.path;
     } catch (e) {
       if (isCancelled || e is CancelledFailure) {
-        if (file != null && file.existsSync()) {
+        // Cierra sink antes de borrar (deleteSync con handle abierto falla en Windows)
+        try {
+          await sink?.close();
+        } catch (_) {}
+        sink = null;
+        final partial = file;
+        file = null;
+        if (partial != null && partial.existsSync()) {
           try {
-            file.deleteSync();
+            await partial.delete();
           } catch (deleteError) {
             debugPrint('WMDA: fallo al borrar archivo parcial: $deleteError');
           }
         }
         throw const CancelledFailure();
       }
-      if (e is Failure) rethrow;
+      if (e is TimeoutException) {
+        throw const ServerFailure('Tiempo de espera agotado en descarga');
+      }
+      if (e is Failure) {
+        try {
+          await sink?.close();
+        } catch (_) {}
+        rethrow;
+      }
       throw ServerFailure('Error al guardar el archivo: $e');
     } finally {
       _cancelTokens.remove(item.id);
@@ -196,9 +236,24 @@ class DownloadService {
 
   String _sanitizeFileName(String name) {
     //quitamos caracteres no validos
-    return name
+    var clean = name
         .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
         .replaceAll(RegExp(r'\s+'), '_')
         .trim();
+    if (clean.isEmpty) clean = 'media';
+    // ponytail: tope 100 chars, FS falla en 255
+    if (clean.length > 100) clean = clean.substring(0, 100);
+    return clean;
+  }
+
+  // Nombre único: evita sobrescribir si dos títulos colisionan
+  File _uniqueFile(Directory dir, String base, String ext) {
+    var candidate = File('${dir.path}/$base.$ext');
+    var i = 1;
+    while (candidate.existsSync()) {
+      candidate = File('${dir.path}/${base}_$i.$ext');
+      if (++i > 1000) break;
+    }
+    return candidate;
   }
 }

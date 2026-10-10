@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/media_item.dart';
+import '../../domain/entities/scan_result.dart';
 import '../../domain/repositories/media_repository.dart';
 import '../models/media_item_model.dart';
 import '../services/download_service.dart';
@@ -13,6 +15,8 @@ class MediaRepositoryImpl implements MediaRepository {
   final DownloadService _downloadService;
 
   static const String _historyKey = 'media_downloads_history';
+  // ponytail: tope 200, SharedPreferences crece sin límite
+  static const int _maxHistory = 200;
 
   MediaRepositoryImpl({
     ScraperService? scraperService,
@@ -21,8 +25,8 @@ class MediaRepositoryImpl implements MediaRepository {
        _downloadService = downloadService ?? DownloadService();
 
   @override
-  Future<List<MediaItem>> scanURL(String url) async {
-    return await _scraperService.scrape(url);
+  Future<ScanResult> scanURL(String url) async {
+    return await _scraperService.scrapeFull(url);
   }
 
   @override
@@ -50,15 +54,33 @@ class MediaRepositoryImpl implements MediaRepository {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = prefs.getStringList(_historyKey) ?? [];
 
-    return jsonList
-        .map((jsonStr) => MediaItemModel.fromMap(jsonDecode(jsonStr)))
-        .toList();
+    // Entradas corruptas se descartan en vez de tumbar el historial
+    final items = <MediaItem>[];
+    for (final jsonStr in jsonList) {
+      try {
+        items.add(MediaItemModel.fromMap(jsonDecode(jsonStr)));
+      } catch (_) {
+        continue;
+      }
+    }
+    return items;
   }
 
   @override
   Future<void> deleteFromHistory(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final history = await getDownloadHistory();
+
+    final removed = history.where((item) => item.id == id);
+    for (final item in removed) {
+      final path = item.localPath;
+      if (path != null && path.isNotEmpty) {
+        try {
+          final f = File(path);
+          if (await f.exists()) await f.delete();
+        } catch (_) {}
+      }
+    }
 
     final updatedHistory = history.where((item) => item.id != id).toList();
     final jsonList = updatedHistory
@@ -76,7 +98,7 @@ class MediaRepositoryImpl implements MediaRepository {
     final updatedHistory = [
       item,
       ...history.where((element) => element.id != item.id),
-    ];
+    ].take(_maxHistory).toList();
 
     final jsonList = updatedHistory
         .map((e) => jsonEncode(MediaItemModel.fromEntity(e).toMap()))

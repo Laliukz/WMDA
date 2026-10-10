@@ -1,4 +1,4 @@
-import '../entities/media_item.dart';
+import '../entities/scan_result.dart';
 import '../repositories/media_repository.dart';
 
 class ScanUrlUsecase {
@@ -6,7 +6,7 @@ class ScanUrlUsecase {
 
   ScanUrlUsecase(this._repository);
 
-  Future<List<MediaItem>> call(String url) async {
+  Future<ScanResult> call(String url) async {
     return await _repository.scanURL(url);
   }
 }

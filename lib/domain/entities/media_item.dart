@@ -10,6 +10,8 @@ class MediaItem {
   final String? localPath;
   final DateTime? downloadedAt;
   final bool isDownloaded;
+  // URL de origen del escaneo: varios CDNs exigen ese Referer al descargar
+  final String? referer;
 
   const MediaItem({
     required this.id,
@@ -21,6 +23,7 @@ class MediaItem {
     this.localPath,
     this.downloadedAt,
     this.isDownloaded = false,
+    this.referer,
   });
   MediaItem copyWith({
     String? id,
@@ -32,6 +35,7 @@ class MediaItem {
     String? localPath,
     DateTime? downloadedAt,
     bool? isDownloaded,
+    String? referer,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -43,6 +47,7 @@ class MediaItem {
       localPath: localPath ?? this.localPath,
       downloadedAt: downloadedAt ?? this.downloadedAt,
       isDownloaded: isDownloaded ?? this.isDownloaded,
+      referer: referer ?? this.referer,
     );
   }
 }

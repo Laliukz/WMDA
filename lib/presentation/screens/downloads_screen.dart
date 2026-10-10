@@ -15,6 +15,7 @@ class DownloadsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final downloadState = ref.watch(downloadProvider);
     final activeItems = downloadState.downloadingItems.values.toList();
+    final failedIds = downloadState.errorMap.keys.toList();
 
     return Scaffold(
       backgroundColor: AppColors.tertiary,
@@ -97,29 +98,73 @@ class DownloadsScreen extends ConsumerWidget {
                 ),
               ),
 
-            // Contenido: Lista activa o estado vacío
+            // Contenido: activas + fallidas, o estado vacío
             Expanded(
-              child: activeItems.isEmpty
+              child: activeItems.isEmpty && failedIds.isEmpty
                   ? _buildEmptyState()
-                  : ListView.separated(
+                  : ListView(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
                       ),
-                      itemCount: activeItems.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 14),
-                      itemBuilder: (context, index) {
-                        final item = activeItems[index];
-                        final progress =
-                            downloadState.progressMap[item.id] ?? 0.0;
-                        return _ActiveDownloadCard(
-                          item: item,
-                          progress: progress,
-                          onCancel: () {
-                            ref.read(downloadProvider.notifier).cancel(item.id);
-                          },
-                        );
-                      },
+                      children: [
+                        for (int i = 0; i < activeItems.length; i++) ...[
+                          _ActiveDownloadCard(
+                            item: activeItems[i],
+                            progress:
+                                downloadState.progressMap[activeItems[i].id] ??
+                                0.0,
+                            onCancel: () {
+                              ref
+                                  .read(downloadProvider.notifier)
+                                  .cancel(activeItems[i].id);
+                            },
+                          ),
+                          if (i < activeItems.length - 1 || failedIds.isNotEmpty)
+                            const SizedBox(height: 14),
+                        ],
+                        if (failedIds.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'Con errores (${failedIds.length})',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: const Color(0xFFD32F2F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          for (int i = 0; i < failedIds.length; i++) ...[
+                            _FailedDownloadCard(
+                              item:
+                                  downloadState.failedItems[failedIds[i]] ??
+                                  MediaItem(
+                                    id: failedIds[i],
+                                    url: '',
+                                    type: MediaType.image,
+                                  ),
+                              error:
+                                  downloadState.errorMap[failedIds[i]] ?? '',
+                              onRetry: () {
+                                final item = downloadState
+                                    .failedItems[failedIds[i]];
+                                if (item != null) {
+                                  ref
+                                      .read(downloadProvider.notifier)
+                                      .download(item);
+                                }
+                              },
+                              onDismiss: () {
+                                ref
+                                    .read(downloadProvider.notifier)
+                                    .clearError(failedIds[i]);
+                              },
+                            ),
+                            if (i < failedIds.length - 1)
+                              const SizedBox(height: 14),
+                          ],
+                        ],
+                      ],
                     ),
             ),
           ],
@@ -261,7 +306,8 @@ class _ActiveDownloadCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '$percentage%',
+                      // Sin content-length no hay % real: puntos en vez de 0%
+                      progress > 0 ? '$percentage%' : '···',
                       style: AppTypography.labelSmall.copyWith(
                         color: AppColors.secondary,
                         fontWeight: FontWeight.bold,
@@ -343,10 +389,14 @@ class _ActiveDownloadCard extends StatelessWidget {
 
   Widget _buildThumbnail(bool isVideo) {
     final imagePreviewUrl = item.previewUrl;
+    final lower = (imagePreviewUrl ?? '').toLowerCase();
     final hasValidImagePreview = imagePreviewUrl != null &&
         imagePreviewUrl.isNotEmpty &&
-        !imagePreviewUrl.toLowerCase().endsWith('.mp4') &&
-        !imagePreviewUrl.toLowerCase().endsWith('.webm');
+        !lower.endsWith('.mp4') &&
+        !lower.endsWith('.webm') &&
+        !lower.endsWith('.mkv') &&
+        !lower.endsWith('.avi') &&
+        !lower.endsWith('.mov');
 
     if (hasValidImagePreview) {
       return CachedNetworkImage(
@@ -404,6 +454,76 @@ class _ActiveDownloadCard extends StatelessWidget {
           size: 24,
           color: Colors.white.withValues(alpha: 0.25),
         ),
+      ),
+    );
+  }
+}
+
+class _FailedDownloadCard extends StatelessWidget {
+  final MediaItem item;
+  final String error;
+  final VoidCallback onRetry;
+  final VoidCallback onDismiss;
+
+  const _FailedDownloadCard({
+    required this.item,
+    required this.error,
+    required this.onRetry,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const red = Color(0xFFD32F2F);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDECEA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: red.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: red, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.title?.isNotEmpty == true
+                      ? item.title!
+                      : 'Descarga fallida',
+                  style: AppTypography.bodyLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  error,
+                  style: AppTypography.label.copyWith(
+                    color: red,
+                    fontSize: 11,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Reintentar')),
+          IconButton(
+            onPressed: onDismiss,
+            icon: const Icon(Icons.close_rounded, color: AppColors.neutral),
+            tooltip: 'Descartar',
+            splashRadius: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
       ),
     );
   }

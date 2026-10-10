@@ -1,8 +1,9 @@
 import '../entities/media_item.dart';
+import '../entities/scan_result.dart';
 
 abstract class MediaRepository {
-  //escanea la URL y devuelve los archivos encontrados
-  Future<List<MediaItem>> scanURL(String url);
+  //escanea la URL y devuelve archivos + enlaces internos
+  Future<ScanResult> scanURL(String url);
 
   //descarga el archivo
   //[onProgress] //barra de progreso

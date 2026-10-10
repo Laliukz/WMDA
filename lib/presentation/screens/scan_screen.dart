@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/media_item.dart';
+import '../../domain/entities/scan_result.dart';
 import '../providers/download_provider.dart';
 import '../providers/scan_provider.dart';
 import '../providers/selected_media_provider.dart';
 import '../widgets/filter_chips_bar.dart';
 import '../widgets/media_card.dart';
+import '../widgets/media_thumbnail.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/selection_bottom_bar.dart';
 import '../widgets/url_input_bar.dart';
@@ -126,7 +128,58 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     const SizedBox(height: 16),
                   ],
 
-                  // 5. Mensaje si no se encontraron medios
+                  // 5. Volver (tras abrir un enlace interno)
+                  if (scanState.canGoBack) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          ref.read(scanProvider.notifier).goBack();
+                        },
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text('Volver'),
+                      ),
+                    ),
+                  ],
+
+                  // 6. Enlaces internos con vista previa:
+                  // al abrirlos se escanea su contenido
+                  if (scanState.status == ScanStatus.success &&
+                      scanState.subpages.isNotEmpty) ...[
+                    Text(
+                      'Explorar (${scanState.subpages.length})',
+                      style: AppTypography.labelSmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 148,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: scanState.subpages.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final link = scanState.subpages[index];
+                          return _SubpageCard(
+                            link: link,
+                            onTap: () {
+                              ref
+                                  .read(selectedMediaProvider.notifier)
+                                  .clearSelection();
+                              ref
+                                  .read(scanProvider.notifier)
+                                  .openSubpage(link.url);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // 7. Mensaje si no se encontraron medios
                   if (scanState.status == ScanStatus.success &&
                       scanState.items.isEmpty) ...[
                     Center(
@@ -194,6 +247,60 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// Tarjeta de enlace interno: solo visual, al tocarla se navega (no se descarga)
+class _SubpageCard extends StatelessWidget {
+  final SubpageLink link;
+  final VoidCallback onTap;
+
+  const _SubpageCard({required this.link, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final display = MediaItem(
+      id: 'page#${link.url}',
+      url: link.previewUrl ?? link.url,
+      previewUrl: link.previewUrl,
+      title: link.title,
+      type: MediaType.image,
+    );
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 132,
+        decoration: BoxDecoration(
+          color: AppColors.chipBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 88,
+              width: 132,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: MediaThumbnail(item: display),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                link.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodyMedium.copyWith(fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
