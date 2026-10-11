@@ -9,6 +9,7 @@ import '../../core/utils/url_helper.dart';
 import '../../domain/entities/media_item.dart';
 import '../../domain/entities/scan_result.dart';
 import 'scraper_extractors.dart';
+import 'social_extractors.dart';
 
 class ScraperService {
   final http.Client _client;
@@ -47,7 +48,49 @@ class ScraperService {
     }
 
     try {
+      // Hilos de X: el HTML exige sesión, se resuelven vía API de lectura
+      final tweetId = SocialExtractors.tweetId(baseUri);
+      if (tweetId != null) {
+        try {
+          final tweetItems = await SocialExtractors.resolveTweet(
+            _client,
+            baseUri,
+            tweetId,
+          );
+          if (tweetItems.isNotEmpty) {
+            return ScanResult(
+              items: tweetItems,
+              subpages: const [],
+            );
+          }
+        } catch (_) {
+          // cae al scraping genérico
+        }
+      }
+
+      // TikTok: el HTML no trae archivos directos
+      if (SocialExtractors.isTikTokUrl(baseUri)) {
+        try {
+          final socialItems = await SocialExtractors.resolveTikTok(
+            _client,
+            baseUri,
+          );
+          if (socialItems.isNotEmpty) {
+            return ScanResult(
+              items: socialItems,
+              subpages: const [],
+            );
+          }
+        } catch (_) {
+          // cae al scraping genérico
+        }
+      }
+
       final headers = Map<String, String>.from(_headers);
+      // Facebook solo sirve HTML estático con otro UA
+      if (SocialExtractors.isFacebookUrl(baseUri)) {
+        headers['User-Agent'] = SocialExtractors.facebookUserAgent;
+      }
       final jar = _cookieJar[baseUri.host];
       if (jar != null && jar.isNotEmpty) headers['Cookie'] = jar;
 
@@ -59,7 +102,7 @@ class ScraperService {
       final setCookie = response.headers['set-cookie'];
       if (setCookie != null && setCookie.isNotEmpty) {
         _storeCookies(baseUri.host, setCookie);
-        final retryHeaders = Map<String, String>.from(_headers)
+        final retryHeaders = Map<String, String>.from(headers)
           ..['Cookie'] = _cookieJar[baseUri.host]!;
         response = await _client
             .get(baseUri, headers: retryHeaders)
