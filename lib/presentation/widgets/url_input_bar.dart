@@ -38,6 +38,20 @@ class UrlInputBar extends StatelessWidget {
                 color: AppColors.neutral,
                 size: 20,
               ),
+              suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, value, _) {
+                  if (value.text.isEmpty) return const SizedBox.shrink();
+                  return IconButton(
+                    onPressed: controller.clear,
+                    icon: const Icon(
+                      Icons.clear,
+                      color: AppColors.neutral,
+                      size: 20,
+                    ),
+                  );
+                },
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
