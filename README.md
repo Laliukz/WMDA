@@ -1,4 +1,4 @@
-# 🌐 WMDA — Web Media Downloader App
+# WMDA — Web Media Downloader App
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/flutter/website/master/src/assets/images/shared/brand/flutter/logo/flutter-lockup.png" width="220" alt="Flutter Logo"/>
@@ -8,41 +8,19 @@
   <strong>Una aplicación multiplataforma moderna y eficiente desarrollada en Flutter para escanear sitios web y descargar contenido multimedia (imágenes y videos) con arquitectura limpia.</strong>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
-  <img src="https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
-  <img src="https://img.shields.io/badge/Architecture-Clean%20Architecture-4CAF50?style=for-the-badge" alt="Clean Architecture">
-  <img src="https://img.shields.io/badge/State%20Management-Riverpod-blueviolet?style=for-the-badge" alt="Riverpod">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License">
-</p>
+---
+
+## Características
+
+- **Web Scraping Inteligente:** Extrae imágenes, videos y etiquetas Open Graph (`og:image`, `og:video`, Twitter Cards) desde cualquier URL web.
+- **Descarga con Streaming y Progreso:** Monitoreo en tiempo real del progreso de descarga (0% a 100%) mediante streams de HTTP.
+- **Diseño Responsivo y Moderno:** Interfaz intuitiva optimizada para móviles.
+- **Historial Persistente:** Guarda y administra el registro local de medios descargados.
+- **Clean Architecture:** Separación estricta de responsabilidades (Dominio, Datos, Presentación y Core), facilitando el mantenimiento y las pruebas unitarias.
 
 ---
 
-## 📌 Tabla de Contenidos
-
-- [Características](#-características)
-- [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
-- [Estructura de Directorios](#-estructura-de-directorios)
-- [Tecnologías y Dependencias](#-tecnologías-y-dependencias)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación y Ejecución](#-instalación-y-ejecución)
-- [Flujo de Usuario](#-flujo-de-usuario)
-- [Contribución](#-contribución)
-- [Licencia](#-licencia)
-
----
-
-## ✨ Características
-
-- 🔍 **Web Scraping Inteligente:** Extrae imágenes, videos y etiquetas Open Graph (`og:image`, `og:video`, Twitter Cards) desde cualquier URL web.
-- ⚡ **Descarga con Streaming y Progreso:** Monitoreo en tiempo real del progreso de descarga (0% a 100%) mediante streams de HTTP.
-- 📱 **Diseño Responsivo y Moderno:** Interfaz intuitiva optimizada para móviles.
-- 💾 **Historial Persistente:** Guarda y administra el registro local de medios descargados.
-- 🧱 **Clean Architecture:** Separación estricta de responsabilidades (Dominio, Datos, Presentación y Core), facilitando el mantenimiento y las pruebas unitarias.
-
----
-
-## 🏛 Arquitectura del Proyecto
+## Arquitectura del Proyecto
 
 El proyecto sigue los principios de **Clean Architecture**:
 
@@ -65,7 +43,7 @@ El proyecto sigue los principios de **Clean Architecture**:
 
 ---
 
-## 📂 Estructura de Directorios
+## Estructura de Directorios
 
 ```text
 lib/
@@ -95,7 +73,7 @@ lib/
 
 ---
 
-## 🛠 Tecnologías y Dependencias
+## Tecnologías y Dependencias
 
 | Paquete | Versión | Propósito |
 | :--- | :---: | :--- |
@@ -108,7 +86,7 @@ lib/
 
 ---
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (`^3.13.0` o superior)
 - [Dart SDK](https://dart.dev/get-dart) (`^3.13.0` o superior)
@@ -116,7 +94,7 @@ lib/
 
 ---
 
-## 🚀 Instalación y Ejecución
+## Instalación y Ejecución
 
 1. **Clonar el repositorio:**
    ```bash
@@ -148,15 +126,10 @@ lib/
 
 ---
 
-## 📱 Flujo de Usuario
+## Flujo de Usuario
 
 1. **Inicio (`Home`):** Muestra el historial reciente de descargas y acceso rápido al escáner.
 2. **Explorador (`Scan`):** Ingreso de URL web y extracción en tiempo real de todos los archivos multimedia.
 3. **Galería & Descarga (`Select & Download`):** Visualización en cuadrícula (Grid) de los medios detectados con opción de descarga y barra de progreso interactiva.
 4. **Biblioteca (`History`):** Explorador de archivos descargados con opciones de previsualización y eliminación.
 
----
-
-## 📄 Licencia
-
-Distribuido bajo la Licencia **MIT**. Consulta el archivo `LICENSE` para más información.
